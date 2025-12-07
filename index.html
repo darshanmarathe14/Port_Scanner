@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberScout | Web Port Scanner</title>
+    <style>
+        /* --- CSS STYLING --- */
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        h1 { color: #58a6ff; }
+        .container {
+            border: 1px solid #30363d;
+            padding: 30px;
+            border-radius: 10px;
+            background-color: #161b22;
+            width: 400px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        input {
+            width: 93%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #fff;
+            font-family: inherit;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #238636;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #2ea043; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+
+        #results { margin-top: 20px; }
+        .port-item {
+            color: #3fb950;
+            margin: 5px 0;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 2px;
+        }
+        .loading { color: #f2cc60; display: none; }
+        .error { color: #f85149; }
+    </style>
+</head>
+<body>
+
+    <h1>CyberScout Scanner</h1>
+
+    <div class="container">
+        <label>Target IP or Hostname:</label>
+        <input type="text" id="targetInput" placeholder="e.g., scanme.nmap.org">
+        
+        <button id="scanBtn" onclick="startScan()">Scan Network</button>
+
+        <div id="results">
+            <p id="loadingMsg" class="loading">Scanning target... (This may take 10–20 seconds)</p>
+            <div id="outputArea"></div>
+        </div>
+    </div>
+
+    <script>
+        async function startScan() {
+            const target = document.getElementById('targetInput').value;
+            const btn = document.getElementById('scanBtn');
+            const output = document.getElementById('outputArea');
+            const loading = document.getElementById('loadingMsg');
+
+            output.innerHTML = "";
+
+            if (!target) {
+                alert("Please enter a target!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Scanning...";
+            loading.style.display = "block";
+
+            try {
+                const response = await fetch('/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    output.innerHTML = `<p class="error">${data.error}</p>`;
+                } else {
+                    output.innerHTML += `<p style="color:white">Target IP: ${data.ip}</p>`;
+                    
+                    if (data.open_ports.length === 0) {
+                        output.innerHTML += `<p>No open ports found in range.</p>`;
+                    } else {
+                        data.open_ports.forEach(port => {
+                            output.innerHTML += `<div class="port-item">[+] Port ${port} is OPEN</div>`;
+                        });
+                    }
+                }
+
+            } catch (err) {
+                output.innerHTML = `<p class="error">Server Error: ${err}</p>`;
+            }
+
+            btn.disabled = false;
+            btn.innerText = "Scan Network";
+            loading.style.display = "none";
+        }
+    </script>
+
+</body>
+</html>
